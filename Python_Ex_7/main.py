@@ -20,6 +20,9 @@ for i in range(len(p)):
         H += -p[i]*log2(p[i])
 
 print('H(X) = ', H)
+
+# check if the sum of relative frequencies is 1
+print('Sum of relative frequencies: ',sum(p))
 plt.show()
 
 
