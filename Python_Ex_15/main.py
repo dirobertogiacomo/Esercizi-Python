@@ -3,6 +3,7 @@ import random
 from scipy.special import erfc
 import matplotlib.pyplot as plt
 from scipy.special import binom
+import time
 
 def genBit(p: float):
     """
@@ -112,25 +113,39 @@ def Hamming_decoder(y):
     c[c%2 == 1] = 1
 
     # string conversion
-    c = np.array2string(1*c, separator='').replace('[', '').replace(']', '')
+    #c = np.array2string(1*c, separator='').replace('[', '').replace(']', '')
 
     return c
+
+"""def countError(x, y):
+"""
+"""Counts the number of errors between two sequence of bits
+
+Giacomo Di Roberto, May 2023, version 1.0"""
+
+"""
+
+if x != y:
+    n = 0
+    for i in range(len(x)):
+        if x[i] != y[i]:
+            n += 1
+else:
+    return 0
+
+return n"""
+
 
 def countError(x, y):
     """
     Counts the number of errors between two sequence of bits
 
-    Giacomo Di Roberto, May 2023, version 1.0
+    Giacomo Di Roberto, May 2023, version 1.1
     
     """
-
-    if x != y:
-        n = 0
-        for i in range(len(x)):
-            if x[i] != y[i]:
-                n += 1
-    else:
-        return 0
+    
+    errors = np.where(x != y)
+    n = len(errors[0])
     
     return n
 
@@ -151,13 +166,17 @@ Peb_theor = 9*(p**2)*((1-p)**5)
 Pe_theor = binom(7,2)*(p**2)*((1-p)**5)
 
 N_e_max = 100
-N_iter_max = 5000
+N_iter_max = 1000000
+
+start = time.time()
 
 for i in range(len(SNR)):
 
     N_e = 0
     N_eb = 0
     N_iter = 0
+
+    print('Simulating Eb/N0 = ', SNR_dB[i], ' dB')
 
     while (N_e < N_e_max and N_iter < N_iter_max):
 
@@ -178,18 +197,26 @@ for i in range(len(SNR)):
         d = Hamming_decoder(y) # decoded codewords
         r = d[0:4] # recived bits
 
+        if (True in (c !=d)):
+            N_e += 1
+            N_eb += countError(x,r)
+
         # check for errors
-        x = np.array2string(1*x, separator='').replace('[', '').replace(']', '') # string conversion
+        """x = np.array2string(1*x, separator='').replace('[', '').replace(']', '') # string conversion
         c = np.array2string(1*c, separator='').replace('[', '').replace(']', '') # string conversion
 
         if c != d: 
             N_e += 1
-            N_eb += countError(x,r)
+            N_eb += countError(x,r)"""
 
         N_iter += 1
     
     ER[i] = N_e/N_iter
     BER[i] = N_eb/(4*N_iter)
+
+stop = time.time()
+
+print('Elapsed time:', stop-start, ' sec')
 
 # plot
 plt.plot(SNR_dB, (Peb_theor))
@@ -200,6 +227,7 @@ plt.xlabel('Eb/N0 [dB]')
 plt.ylabel('BER')
 plt.title('Bit Error Rate')
 plt.legend(('Theoretical','Uncoded','Simulated'))
+plt.savefig('Python_Ex_15/Bit error rate.png')
 
 plt.figure()
 plt.plot(SNR_dB, Pe_theor)
@@ -209,5 +237,6 @@ plt.ylabel('ER')
 plt.title('Error Rate')
 plt.legend(('Theoretical','Simulated'))
 plt.yscale('log')
+plt.savefig('Python_Ex_15/Error rate.png')
 
 plt.show()

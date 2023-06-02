@@ -81,12 +81,14 @@ simulated_BER = np.zeros(len(SNR))
 analytical_BER = 0.5*erfc(np.sqrt(SNR))
 
 N_err_max = 100
-iter_max = 50000
+iter_max = 1000000
 
 for i in range(len(SNR)):
 
     N_err = 0
     iter = 0
+
+    print('Simulating Eb/N0 = ', SNR_dB[i], ' dB')
 
     while (N_err < N_err_max and iter < iter_max):
 
@@ -106,7 +108,7 @@ for i in range(len(SNR)):
         r = antipodalDecoding(d)
         
         # check for errors
-        if r!=b:
+        if r != b:
             N_err += 1
 
         iter += 1
@@ -121,5 +123,7 @@ plt.ylabel('BER')
 plt.title('Bit Error Rate')
 plt.legend(('Analytical', 'Simulated'))
 plt.yscale('log')
+
+plt.savefig('Python_Ex_14/Bit error rate.png')
 plt.show()
 

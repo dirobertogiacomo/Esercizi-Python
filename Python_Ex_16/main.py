@@ -3,6 +3,7 @@ import random
 import math 
 from scipy.special import erfc
 import matplotlib.pyplot as plt
+import time
 
 def genBit(p: float):
     """
@@ -22,33 +23,32 @@ def antipodalCoding(b):
     """
     Perform the antipodal coding to the given input: 0 -> 1 and 1 -> -1.
 
-    Giacomo Di Roberto, May 2023, version 1.0
+    Giacomo Di Roberto, May 2023, version 1.1
 
     """
 
-    c = np.zeros(len(b))
+    coded = b.copy()
 
-    for i in range(len(b)):
-        if b[i] == 1: c[i] = -1
-        if b[i] == 0: c[i] = 1
+    coded[b == 1] = -1
+    coded[b == 0] = 1
     
-    return c
 
-def antipodalDecoding(c):
+    return coded
+
+def antipodalDecoding(coded):
     """
     Perform the antipodal decoding to the given input: 1 -> 0 and -1 -> 1.
 
-    Giacomo Di Roberto, May 2023, version 1.0
+    Giacomo Di Roberto, May 2023, version 1.1
 
     """
-
-    x = np.zeros(len(c))
-
-    for i in range(len(c)):
-        if c[i] == 1: x[i] = 0
-        if c[i] == -1: x[i] = 1
     
-    return x
+    decoded = coded.copy()
+
+    decoded[coded == 1] = 0
+    decoded[coded == -1] = 1
+    
+    return decoded
 
 
 def Hamming_encoder(x):
@@ -124,17 +124,12 @@ def countError(x, y):
     """
     Counts the number of errors between two sequence of bits
 
-    Giacomo Di Roberto, May 2023, version 1.0
+    Giacomo Di Roberto, May 2023, version 1.1
     
     """
-
-    if x != y:
-        n = 0
-        for i in range(len(x)):
-            if x[i] != y[i]:
-                n += 1
-    else:
-        return 0
+    
+    errors = np.where(x != y)
+    n = len(errors[0])
     
     return n
 
@@ -147,26 +142,32 @@ Rc = 4/7
 BER = np.zeros(len(SNR))
 
 # computing theorical error probability 
-Peb_theor = (3/2)*erfc(np.sqrt(SNR*(12/7)))
+Peb_theor_SD = (3/2)*erfc(np.sqrt(SNR*(12/7)))
+
+p = 0.5*erfc(np.sqrt(SNR*Rc))
+Peb_theor_HD = 9*(p**2)*((1-p)**5)
 
 
 N_e_max = 100
-N_iter_max = 10000
+N_iter_max = 2e6
 
+start  = time.time()
 for i in range(len(SNR)):
 
     N_e = 0
     N_eb = 0
     N_iter = 0
 
+    print('Simulating Eb/N0 = ', SNR_dB[i], ' dB')
+
     while (N_e < N_e_max and N_iter < N_iter_max):
 
         # generation of a 4 bits sequence
-        x = np.zeros(4, dtype=int)
+        x = np.zeros(4, dtype=float)
 
         for j in range(4):
             b = genBit(0.5)
-            x[j] = bool(int(b))
+            x[j] = bool(float(b))
 
         # channel coding (Hamming)
         c = Hamming_encoder(x)
@@ -185,27 +186,27 @@ for i in range(len(SNR)):
         # antipodal decoding
         d = antipodalDecoding(d)
         r = d[0:4] # recived bits
-        
-        # check for errors
-        x = np.array2string(x, separator='').replace('[', '').replace(']', '').replace('.', '') # string conversion
-        c = np.array2string(c, separator='').replace('[', '').replace(']', '').replace('.', '') # string conversion
-        d = np.array2string(d, separator='').replace('[', '').replace(']', '').replace('.', '') # string conversion
-        r = np.array2string(r, separator='').replace('[', '').replace(']', '').replace('.', '') # string conversion
 
-        if c != d: 
+        # check for errors
+        if (True in (c !=d)):
             N_e += 1
             N_eb += countError(x,r)
-
+        
         N_iter += 1
     
     BER[i] = N_eb/(4*N_iter)
 
-plt.plot(SNR_dB, (Peb_theor))
+stop = time.time()
+print('Elapsed time:', stop-start, ' sec')
+
+plt.plot(SNR_dB, (Peb_theor_HD))
+plt.plot(SNR_dB, (Peb_theor_SD))
 plt.plot(SNR_dB, (BER))
 plt.yscale('log')
 plt.xlabel('Eb/N0 [dB]')
 plt.ylabel('BER')
 plt.title('Bit Error Rate')
-plt.legend(('Theoretical','Simulated'))
+plt.legend(('Theoretical HD', 'Theoretical SD', 'Simulated SD'))
 
+plt.savefig('Python_Ex_16/Bit error rate.png')
 plt.show()
